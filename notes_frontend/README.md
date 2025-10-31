@@ -37,6 +37,11 @@ Example SQL:
 
 You may add Row Level Security policies as needed for your environment. For local prototyping you can temporarily disable RLS.
 
+If you enable RLS and require user ownership:
+- Add a user_id column (uuid) referencing auth.users(id).
+- Create policies that allow insert/select/update/delete where notes.user_id = auth.uid().
+- The frontend will include user_id automatically if a Supabase session exists. If you're not using auth, keep RLS disabled or add permissive policies for anon writes during development.
+
 ## Available scripts
 
 - npm start - start development server

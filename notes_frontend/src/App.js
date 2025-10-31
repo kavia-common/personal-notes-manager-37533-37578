@@ -10,7 +10,15 @@ import AuthGate from "./components/AuthGate";
 import { createNote, deleteNote, listNotes, updateNote } from "./services/notesService";
 import { useToast } from "./components/Toast";
 
-// PUBLIC_INTERFACE
+/**
+ * PUBLIC_INTERFACE
+ * App
+ * Main application component. Handles:
+ * - Loading notes from Supabase
+ * - Creating local drafts with temporary ids and reconciling them to server ids after insert
+ * - Saving updates, deleting notes
+ * - Theming and toasts
+ */
 function App() {
   const [theme, setTheme] = useState("light");
   const [notes, setNotes] = useState([]);
@@ -96,7 +104,7 @@ function App() {
       console.error("Failed to create note", e);
       addToast({
         type: "error",
-        message: "Couldn't save new note to server. Working on a local draft."
+        message: `Couldn't save new note to server${e?.message ? `: ${e.message}` : ""}. Working on a local draft.`
       });
       // Keep local draft; ensure flags are set
       setNotes((prev) =>
@@ -155,7 +163,7 @@ function App() {
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error("Failed to save local draft", e);
-        addToast({ type: "error", message: "Failed to save draft. Please retry." });
+        addToast({ type: "error", message: `Failed to save draft${e?.message ? `: ${e.message}` : ""}. Please retry.` });
         // Keep it marked as unsaved
         setNotes((prev) =>
           (prev || []).map((n) =>
@@ -183,7 +191,7 @@ function App() {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("Failed to save note", e);
-      addToast({ type: "error", message: "Failed to save note." });
+      addToast({ type: "error", message: `Failed to save note${e?.message ? `: ${e.message}` : ""}.` });
     }
   };
 
