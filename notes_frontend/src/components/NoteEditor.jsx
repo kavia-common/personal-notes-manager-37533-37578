@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * NoteEditor allows editing the selected note.
@@ -7,6 +7,11 @@ export default function NoteEditor({ note, onSave }) {
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.content || "");
   const [dirty, setDirty] = useState(false);
+
+  const isUnsavedDraft = useMemo(
+    () => !!note && (note._localOnly || (typeof note.id === "string" && note.id.startsWith("local-"))),
+    [note]
+  );
 
   useEffect(() => {
     setTitle(note?.title || "");
@@ -33,6 +38,11 @@ export default function NoteEditor({ note, onSave }) {
   return (
     <div className="note-editor">
       <div className="note-editor__header">
+        {isUnsavedDraft && (
+          <span className="badge badge-unsaved" title="This note is a local draft and not yet saved to the server">
+            Unsaved draft
+          </span>
+        )}
         <input
           className="input title-input"
           placeholder="Note title"

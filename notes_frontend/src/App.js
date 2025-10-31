@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import "./App.css";
 import "./index.css";
 import Navbar from "./components/Navbar";
@@ -53,35 +53,63 @@ function App() {
   /**
    * PUBLIC_INTERFACE
    * handleCreate
-   * Creates a new note with default title "Untitled", persists it, selects it, and updates the list.
+   * Creates a local draft immediately with a temporary id, selects it, then attempts to save to Supabase in the background.
+   * On success, reconciles the temporary note with the server note (replacing temp id and updating state).
+   * On failure, keeps the local draft marked as unsaved for manual retry.
    */
-  const handleCreate = async () => {
+  const handleCreate = useCallback(async () => {
+    // Generate a client id for the local draft
+    const tempId = `local-${Math.random().toString(36).slice(2)}`;
+    const nowIso = new Date().toISOString();
+    const tempNote = {
+      id: tempId,
+      title: "Untitled",
+      content: "",
+      created_at: nowIso,
+      updated_at: nowIso,
+      _localOnly: true, // local draft flag
+      _status: "unsaved" // for UI
+    };
+
+    // Insert temp note at top, select it immediately (defensive if array empty)
+    setNotes((prev) => [tempNote, ...(prev || [])]);
+    setSelected(tempNote);
+
+    // Attempt to persist in background
     try {
-      const newNote = await createNote({ title: "Untitled", content: "" });
-      setNotes((n) => [newNote, ...n]);
-      setSelected(newNote);
+      const serverNote = await createNote({ title: tempNote.title, content: tempNote.content });
+      // Reconcile: replace temp note with server note
+      setNotes((prev) => {
+        const others = (prev || []).filter((n) => n.id !== tempId);
+        return [serverNote, ...others].sort(
+          (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+        );
+      });
+      // If the temp was still selected, move selection to the real one
+      setSelected((cur) => {
+        if (!cur) return serverNote;
+        return cur.id === tempId ? serverNote : cur;
+      });
       addToast({ type: "success", message: "New note created." });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("Failed to create note", e);
       addToast({
         type: "error",
-        message: "Couldn't create note on server. Opening a local draft."
+        message: "Couldn't save new note to server. Working on a local draft."
       });
-      // Fallback: open an empty editor to avoid dead-end UX
-      const localDraft = {
-        id: undefined,
-        title: "Untitled",
-        content: "",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // Mark as transient so future logic could handle this differently if needed
-        _transient: true
-      };
-      setSelected(localDraft);
-      // Don't add to notes list since it wasn't created server-side
+      // Keep local draft; ensure flags are set
+      setNotes((prev) =>
+        (prev || []).map((n) =>
+          n.id === tempId ? { ...n, _localOnly: true, _status: "unsaved" } : n
+        )
+      );
+      setSelected((cur) => {
+        if (!cur) return tempNote;
+        return cur.id === tempId ? { ...tempNote, _localOnly: true, _status: "unsaved" } : cur;
+        });
     }
-  };
+  }, [addToast]);
 
   const handleDelete = async (note) => {
     if (!note?.id) {
@@ -105,17 +133,47 @@ function App() {
 
   const handleSave = async (patch) => {
     if (!selected) return;
-    if (!selected.id) {
-      addToast({
-        type: "error",
-        message: "This is a local draft. Create a new note first to save to server."
-      });
+
+    // If selected is a local draft (unsaved), attempt a create to the server first
+    if (selected._localOnly || (typeof selected.id === "string" && selected.id.startsWith("local-"))) {
+      const tempId = selected.id || `local-${Math.random().toString(36).slice(2)}`;
+      const payload = {
+        title: (patch?.title ?? selected.title ?? "").trim(),
+        content: patch?.content ?? selected.content ?? ""
+      };
+      try {
+        const serverNote = await createNote(payload);
+        // Reconcile: replace temp with server note
+        setNotes((prev) => {
+          const list = (prev || []).filter((n) => n.id !== tempId);
+          return [serverNote, ...list].sort(
+            (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+          );
+        });
+        setSelected(serverNote);
+        addToast({ type: "success", message: "Draft saved to server." });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to save local draft", e);
+        addToast({ type: "error", message: "Failed to save draft. Please retry." });
+        // Keep it marked as unsaved
+        setNotes((prev) =>
+          (prev || []).map((n) =>
+            n.id === tempId ? { ...n, _localOnly: true, _status: "unsaved" } : n
+          )
+        );
+      }
       return;
     }
+
+    // Regular update for persisted notes
     try {
-      const updated = await updateNote(selected.id, patch);
+      const updated = await updateNote(selected.id, {
+        title: (patch?.title ?? selected.title ?? "").trim(),
+        content: patch?.content ?? selected.content ?? ""
+      });
       setNotes((all) => {
-        const others = all.filter((n) => n.id !== updated.id);
+        const others = (all || []).filter((n) => n.id !== updated.id);
         return [updated, ...others].sort(
           (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
         );

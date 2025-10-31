@@ -20,28 +20,38 @@ export default function NotesList({
         </button>
       </div>
       <ul className="notes-list__items">
-        {notes.map((n) => (
-          <li
-            key={n.id}
-            className={`notes-list__item ${selectedId === n.id ? "active" : ""}`}
-            onClick={() => onSelect(n)}
-          >
-            <div className="notes-list__item-title">{n.title || "Untitled"}</div>
-            <div className="notes-list__item-meta">
-              {n.updated_at ? new Date(n.updated_at).toLocaleString() : ""}
-            </div>
-            <button
-              className="icon-btn danger"
-              title="Delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(n);
-              }}
+        {notes.map((n) => {
+          const isUnsaved = n._localOnly || (typeof n.id === "string" && n.id.startsWith("local-"));
+          return (
+            <li
+              key={n.id ?? `local-${n.created_at ?? Math.random()}`}
+              className={`notes-list__item ${selectedId === n.id ? "active" : ""}`}
+              onClick={() => onSelect(n)}
             >
-              🗑
-            </button>
-          </li>
-        ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="notes-list__item-title">{n.title || "Untitled"}</div>
+                {isUnsaved && (
+                  <span className="badge badge-unsaved" title="This note has not been saved to the server yet">
+                    Unsaved
+                  </span>
+                )}
+              </div>
+              <div className="notes-list__item-meta">
+                {n.updated_at ? new Date(n.updated_at).toLocaleString() : ""}
+              </div>
+              <button
+                className="icon-btn danger"
+                title="Delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(n);
+                }}
+              >
+                🗑
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
