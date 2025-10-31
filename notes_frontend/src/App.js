@@ -8,6 +8,7 @@ import NoteEditor from "./components/NoteEditor";
 import EmptyState from "./components/EmptyState";
 import AuthGate from "./components/AuthGate";
 import { createNote, deleteNote, listNotes, updateNote } from "./services/notesService";
+import { useToast } from "./components/Toast";
 
 // PUBLIC_INTERFACE
 function App() {
@@ -16,6 +17,7 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const isEmpty = useMemo(() => !loading && notes.length === 0, [loading, notes]);
+  const { addToast } = useToast();
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -36,11 +38,12 @@ function App() {
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error("Failed to load notes", e);
+        addToast({ type: "error", message: "Failed to load notes. Please check your connection." });
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [addToast]);
 
   // PUBLIC_INTERFACE
   const toggleTheme = () => {
@@ -57,14 +60,34 @@ function App() {
       const newNote = await createNote({ title: "Untitled", content: "" });
       setNotes((n) => [newNote, ...n]);
       setSelected(newNote);
+      addToast({ type: "success", message: "New note created." });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("Failed to create note", e);
+      addToast({
+        type: "error",
+        message: "Couldn't create note on server. Opening a local draft."
+      });
+      // Fallback: open an empty editor to avoid dead-end UX
+      const localDraft = {
+        id: undefined,
+        title: "Untitled",
+        content: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        // Mark as transient so future logic could handle this differently if needed
+        _transient: true
+      };
+      setSelected(localDraft);
+      // Don't add to notes list since it wasn't created server-side
     }
   };
 
   const handleDelete = async (note) => {
-    if (!note?.id) return;
+    if (!note?.id) {
+      addToast({ type: "error", message: "Cannot delete an unsaved draft." });
+      return;
+    }
     try {
       await deleteNote(note.id);
       setNotes((n) => n.filter((x) => x.id !== note.id));
@@ -72,14 +95,23 @@ function App() {
         if (!current || current.id !== note.id) return current;
         return null;
       });
+      addToast({ type: "success", message: "Note deleted." });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("Failed to delete note", e);
+      addToast({ type: "error", message: "Failed to delete note." });
     }
   };
 
   const handleSave = async (patch) => {
     if (!selected) return;
+    if (!selected.id) {
+      addToast({
+        type: "error",
+        message: "This is a local draft. Create a new note first to save to server."
+      });
+      return;
+    }
     try {
       const updated = await updateNote(selected.id, patch);
       setNotes((all) => {
@@ -89,9 +121,11 @@ function App() {
         );
       });
       setSelected(updated);
+      addToast({ type: "success", message: "Note saved." });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("Failed to save note", e);
+      addToast({ type: "error", message: "Failed to save note." });
     }
   };
 

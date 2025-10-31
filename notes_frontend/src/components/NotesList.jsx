@@ -15,7 +15,7 @@ export default function NotesList({
     <div className="notes-list">
       <div className="notes-list__header">
         <h2>Notes</h2>
-        <button className="btn btn-primary" onClick={onCreate}>
+        <button className="btn btn-primary" onClick={typeof onCreate === "function" ? onCreate : undefined}>
           + New Note
         </button>
       </div>
