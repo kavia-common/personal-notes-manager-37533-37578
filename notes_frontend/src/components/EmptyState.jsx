@@ -1,6 +1,7 @@
 import React from "react";
 
 /**
+ * PUBLIC_INTERFACE
  * Simple empty state with CTA.
  */
 export default function EmptyState({ title = "No notes yet", action, onAction }) {

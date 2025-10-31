@@ -1,6 +1,7 @@
 import React from "react";
 
 /**
+ * PUBLIC_INTERFACE
  * NotesList renders a vertical list of notes with selection and delete support.
  */
 export default function NotesList({

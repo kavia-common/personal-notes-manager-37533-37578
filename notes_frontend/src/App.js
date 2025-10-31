@@ -47,9 +47,14 @@ function App() {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
+  /**
+   * PUBLIC_INTERFACE
+   * handleCreate
+   * Creates a new note with default title "Untitled", persists it, selects it, and updates the list.
+   */
   const handleCreate = async () => {
     try {
-      const newNote = await createNote({ title: "New Note", content: "" });
+      const newNote = await createNote({ title: "Untitled", content: "" });
       setNotes((n) => [newNote, ...n]);
       setSelected(newNote);
     } catch (e) {
@@ -94,6 +99,7 @@ function App() {
     <AuthGate>
       <div className="app-root">
         <Navbar
+          onCreate={handleCreate}
           right={
             <button className="theme-toggle" onClick={toggleTheme}>
               {theme === "light" ? "🌙 Dark" : "☀️ Light"}
