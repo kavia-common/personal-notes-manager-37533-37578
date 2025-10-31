@@ -1,82 +1,57 @@
-# Lightweight React Template for KAVIA
+# Ocean Notes - React + Supabase
 
-This project provides a minimal React template with a clean, modern UI and minimal dependencies.
+A modern notes app with a clean Ocean Professional theme. Create, edit, and delete personal notes stored in Supabase.
 
-## Features
+## Quick Start
 
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
+1) Install dependencies
+   npm install
 
-## Getting Started
+2) Environment variables
+   Create a .env file in notes_frontend with:
+   REACT_APP_SUPABASE_URL=<your_supabase_project_url>
+   REACT_APP_SUPABASE_KEY=<your_supabase_anon_key>
 
-In the project directory, you can run:
+3) Start the app
+   npm start
 
-### `npm start`
+The app will be available at http://localhost:3000
 
-Runs the app in development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Supabase schema
 
-### `npm test`
+Create a table notes with the following columns:
+- id: bigint (or uuid) - Primary key (if bigint, enable identity/auto increment)
+- title: text
+- content: text
+- created_at: timestamp with time zone, default now()
+- updated_at: timestamp with time zone, default now()
 
-Launches the test runner in interactive watch mode.
+Example SQL:
+  create table if not exists public.notes (
+    id bigserial primary key,
+    title text,
+    content text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
 
-### `npm run build`
+You may add Row Level Security policies as needed for your environment. For local prototyping you can temporarily disable RLS.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Available scripts
 
-## Customization
+- npm start - start development server
+- npm test  - run tests in CI mode
+- npm run build - production build
 
-### Colors
+## Env reference
 
-The main brand colors are defined as CSS variables in `src/App.css`:
+Used by the frontend:
+- REACT_APP_SUPABASE_URL
+- REACT_APP_SUPABASE_KEY
 
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
+Other envs are scaffolded by the platform and are not required for this app to run.
 
-### Components
+## Notes
 
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
-Common components include:
-- Buttons (`.btn`, `.btn-large`)
-- Container (`.container`)
-- Navigation (`.navbar`)
-- Typography (`.title`, `.subtitle`, `.description`)
-
-## Learn More
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- This project uses @supabase/supabase-js v2.
+- If you later add auth, wire it in src/components/AuthGate.jsx and pass a session to notesService calls as needed.
